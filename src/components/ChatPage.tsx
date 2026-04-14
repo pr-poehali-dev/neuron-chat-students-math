@@ -10,7 +10,93 @@ interface Message {
   time: string;
 }
 
-const CHAT_URL = "https://functions.poehali.dev/83731913-a646-4d03-9d18-f055ecf8f355";
+const MOCK_REPLIES: Record<Mode, Record<string, string>> = {
+  explainer: {
+    "Что такое производная?": `Производная — это скорость изменения функции в точке 📈
+
+Представь, что ты едешь на машине. Функция f(x) — это твой путь, а производная f'(x) — это спидометр, показывающий скорость прямо сейчас.
+
+Формально: f'(x) = lim (f(x+h) - f(x)) / h при h→0
+
+Пример: если f(x) = x², то f'(x) = 2x
+• При x=3: скорость изменения = 6
+• При x=0: функция в минимуме, скорость = 0
+
+Производная используется везде: физика, экономика, машинное обучение.`,
+    "Объясни интеграл": `Интеграл — это площадь под графиком функции 📊
+
+Если производная — это «разбить на мгновения», то интеграл — «собрать всё обратно».
+
+∫f(x)dx — неопределённый интеграл (находим семейство функций)
+∫ₐᵇ f(x)dx — определённый интеграл (конкретное число = площадь)
+
+Пример: ∫2x dx = x² + C
+Проверка: берём производную x² → получаем 2x ✅
+
+Таблица базовых интегралов:
+• ∫xⁿ dx = xⁿ⁺¹/(n+1) + C
+• ∫eˣ dx = eˣ + C
+• ∫sin x dx = −cos x + C`,
+    "Теорема Пифагора": `Теорема Пифагора — основа геометрии 📐
+
+В прямоугольном треугольнике:
+a² + b² = c²
+где c — гипотенуза (сторона напротив прямого угла)
+
+Пример: катеты a=3, b=4
+→ c² = 9 + 16 = 25
+→ c = 5
+
+Тройка (3, 4, 5) — «египетский треугольник», самая известная.
+
+Другие пифагоровы тройки: (5,12,13), (8,15,17)
+
+Применяется в навигации, строительстве, компьютерной графике.`,
+    "Формула дискриминанта": `Дискриминант определяет количество корней квадратного уравнения 🔢
+
+Для уравнения ax² + bx + c = 0:
+D = b² − 4ac
+
+• D > 0 → два различных корня: x = (−b ± √D) / 2a
+• D = 0 → один корень (двойной): x = −b / 2a
+• D < 0 → корней нет (в ℝ)
+
+Пример: x² − 5x + 6 = 0
+D = 25 − 24 = 1 > 0
+x₁ = (5+1)/2 = 3
+x₂ = (5−1)/2 = 2`,
+    default: `Отличный вопрос! Давай разберём по шагам 🧮
+
+1. Сначала определим, к какому разделу относится задача
+2. Вспомним нужные формулы и теоремы
+3. Решим пример и проверим ответ
+
+Уточни вопрос подробнее — и я объясню максимально понятно!`,
+  },
+  teacher: {
+    "Помоги решить x²-5x+6=0": `Хорошо, давай думать вместе. Это квадратное уравнение.
+
+Скажи мне: какие методы решения квадратных уравнений ты знаешь? 🤔`,
+    "Не понимаю пределы": `Интересно. А что именно вызывает затруднение?
+
+Попробуй своими словами ответить: что, на твой взгляд, пытается «сделать» предел функции при x→a? К чему он стремится?`,
+    "Задача на вероятность": `Прежде чем решать — давай разберём условие.
+
+Ты можешь сформулировать: что в этой задаче является «благоприятным исходом» и сколько всего возможных исходов? 🎲`,
+    "Как брать производную?": `Хороший вопрос. Начнём с основ.
+
+Как ты думаешь: если функция f(x) = x², то в точке x=2 она растёт быстро или медленно? Как бы ты это описал числом? 📈`,
+    default: `Понял тебя. Прежде чем двигаться дальше — ответь на вопрос:
+
+Что ты уже знаешь по этой теме? Даже если кажется, что ничего — попробуй сформулировать своё предположение. Это важный шаг 🎓`,
+  },
+};
+
+const getReply = (mode: Mode, text: string): string => {
+  const replies = MOCK_REPLIES[mode];
+  const key = Object.keys(replies).find((k) => k !== "default" && text.toLowerCase().includes(k.toLowerCase().slice(0, 10)));
+  return replies[key ?? "default"] ?? replies["default"];
+};
 
 const MODE_CONFIG: Record<Mode, {
   label: string;
@@ -70,36 +156,21 @@ const ChatPage = () => {
     setInput("");
   };
 
-  const sendMessage = async (text: string) => {
+  const sendMessage = (text: string) => {
     if (!text.trim() || isTyping) return;
     const now = new Date().toLocaleTimeString("ru", { hour: "2-digit", minute: "2-digit" });
-    const userMsg: Message = { id: Date.now(), role: "user", text, time: now };
-    const updatedMessages = [...messages, userMsg];
-    setMessages(updatedMessages);
+    setMessages((prev) => [...prev, { id: Date.now(), role: "user", text, time: now }]);
     setInput("");
     setIsTyping(true);
-    try {
-      const history = updatedMessages.map((m) => ({ role: m.role, content: m.text }));
-      const res = await fetch(CHAT_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: history, mode }),
-      });
-      const data = await res.json();
+    setTimeout(() => {
+      setIsTyping(false);
       setMessages((prev) => [...prev, {
         id: Date.now() + 1,
         role: "assistant",
-        text: data.reply || "Произошла ошибка. Попробуй ещё раз.",
+        text: getReply(mode, text),
         time: new Date().toLocaleTimeString("ru", { hour: "2-digit", minute: "2-digit" }),
       }]);
-    } catch {
-      setMessages((prev) => [...prev, {
-        id: Date.now() + 1, role: "assistant",
-        text: "Нет связи с сервером. Проверь соединение.", time: now,
-      }]);
-    } finally {
-      setIsTyping(false);
-    }
+    }, 1200 + Math.random() * 600);
   };
 
   return (
