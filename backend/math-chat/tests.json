@@ -1,0 +1,28 @@
+{
+  "tests": [
+    {
+      "name": "Explainer mode",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "mode": "explainer",
+        "messages": [{"role": "user", "content": "Что такое производная?"}]
+      },
+      "expectedStatus": 200,
+      "expectedBody": {"reply": "string", "mode": "string"},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Teacher mode",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "mode": "teacher",
+        "messages": [{"role": "user", "content": "Как решить x^2 - 4 = 0?"}]
+      },
+      "expectedStatus": 200,
+      "expectedBody": {"reply": "string", "mode": "string"},
+      "bodyMatcher": "partial"
+    }
+  ]
+}
